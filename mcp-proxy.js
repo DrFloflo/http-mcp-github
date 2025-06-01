@@ -67,10 +67,34 @@ mcp.stdout.on('data', (chunk) => {
         res.json(result);
       }
     }
+    // If this id was registered for an SSE stream, send it as an SSE event:
+    if (ssePending.has(id)) {
+      const { res: sseRes, remaining } = ssePending.get(id);
+
+      // Build a JSON-RPC response object to send as SSE data:
+      const sseMessage = JSON.stringify(parsed);
+
+      // Send one SSE event:
+      //   data: <json>\n\n
+      sseRes.write(`data: ${sseMessage}\n\n`);
+
+      // Remove this id from the “remaining” set.
+      remaining.delete(id);
+
+      // If that was the last pending id for this SSE client, close the stream:
+      if (remaining.size === 0) {
+        sseRes.end();
+        ssePending.delete(id);
+      } else {
+        // otherwise, keep the entry alive under the other ids in “remaining”:
+        // (no action needed here; we only remove this id)
+      }
+    }
   }
 });
 
 const pending = new Map(); // map<id, { res }>
+const ssePending = new Map();
 
 let nextId = 1;
 
@@ -104,6 +128,57 @@ app.post('/execute', (req, res) => {
   console.log('[to-MCP] full JSON-RPC →', JSON.stringify(payload));
   pending.set(id, { res });
   mcp.stdin.write(JSON.stringify(payload) + '\n');
+});
+
+app.post('/sse', (req, res) => {
+  // Must be raw JSON array or single object (JSON-RPC request[s]).
+  // We expect Content-Type: application/json and a JSON-RPC object or array in req.body.
+
+  // 1) Prepare this response as SSE:
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+    // (Optionally) 'Access-Control-Allow-Origin': '*' 
+  });
+  res.flushHeaders(); // send headers right away
+
+  // 2) Normalize incoming JSON-RPC request(s) into an array:
+  let requests = req.body;
+  if (!Array.isArray(requests)) {
+    requests = [requests];
+  }
+
+  // 3) Collect all request IDs for this SSE client:
+  const remaining = new Set();
+  for (const rpcReq of requests) {
+    if (typeof rpcReq.id !== 'number') {
+      // If an incoming request is missing "id", we can’t map the reply back.
+      // Immediately send an error as SSE and close.
+      const errBody = JSON.stringify({
+        jsonrpc: '2.0',
+        id: rpcReq.id || null,
+        error: { code: -32600, message: 'Missing or invalid id' }
+      });
+      res.write(`data: ${errBody}\n\n`);
+      return res.end();
+    }
+    remaining.add(rpcReq.id);
+    // Register in ssePending so stdout handler can pick it up:
+    ssePending.set(rpcReq.id, { res, remaining });
+  }
+
+  // 4) When the client closes the HTTP connection prematurely, clean up:
+  req.on('close', () => {
+    for (const rpcReq of requests) {
+      ssePending.delete(rpcReq.id);
+    }
+  });
+
+  // 5) Forward each JSON-RPC request (raw) to MCP’s stdin:
+  for (const rpcReq of requests) {
+    mcp.stdin.write(JSON.stringify(rpcReq) + '\n');
+  }
 });
 
 const PORT = 6277;
