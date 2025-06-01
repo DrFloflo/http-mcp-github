@@ -133,7 +133,8 @@ app.post('/execute', (req, res) => {
 app.post('/sse', (req, res) => {
   // Must be raw JSON array or single object (JSON-RPC request[s]).
   // We expect Content-Type: application/json and a JSON-RPC object or array in req.body.
-
+  console.log('[SSE] raw req.body =', JSON.stringify(req.body));
+  console.log('[SSE] req.headers =', JSON.stringify(req.headers));
   // 1) Prepare this response as SSE:
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
