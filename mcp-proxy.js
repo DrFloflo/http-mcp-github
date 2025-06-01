@@ -1,11 +1,7 @@
-// mcp-proxy.js
-//
 // A tiny stdio→HTTP bridge for GitHub’s MCP Server Docker image.
 //
 // Usage:   export GITHUB_PERSONAL_ACCESS_TOKEN="⟨your_token⟩"
 //          node mcp-proxy.js
-//
-// Then point any HTTP client (VS Code, n8n, curl…) at http://localhost:6277/tools or /execute.
 
 require('dotenv').config();
 
@@ -189,6 +185,6 @@ app.post('/sse', (req, res) => {
 });
 
 const PORT = 6277;
-app.listen(PORT, () => {
-  console.log(`MCP proxy HTTP listening on http://localhost:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`MCP proxy HTTP listening on http://0.0.0.0:${PORT}`);
 });
