@@ -174,7 +174,8 @@ app.post('/sse', (req, res) => {
   }
 
   // 4) When the client closes the HTTP connection prematurely, clean up:
-  req.on('close', () => {
+  res.on('close', () => {
+    console.log('[SSE] client closed HTTP connection');
     for (const rpcReq of requests) {
       ssePending.delete(rpcReq.id);
     }
