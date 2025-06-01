@@ -73,7 +73,7 @@ mcp.stdout.on('data', (chunk) => {
 
       // Build a JSON-RPC response object to send as SSE data:
       const sseMessage = JSON.stringify(parsed);
-
+      console.log('[SSE] sending event for id=', id, 'msg=', sseMessage);
       // Send one SSE event:
       //   data: <json>\n\n
       sseRes.write(`data: ${sseMessage}\n\n`);
@@ -108,6 +108,7 @@ app.get('/tools', (req, res) => {
     params: {}
   };
   pending.set(id, { res });
+  console.log('[to-MCP] forwarding to MCP.stdin →', JSON.stringify(payload));
   mcp.stdin.write(JSON.stringify(payload) + '\n');
 });
 
@@ -127,6 +128,7 @@ app.post('/execute', (req, res) => {
   };
   console.log('[to-MCP] full JSON-RPC →', JSON.stringify(payload));
   pending.set(id, { res });
+  console.log('[to-MCP] forwarding to MCP.stdin →', JSON.stringify(payload));
   mcp.stdin.write(JSON.stringify(payload) + '\n');
 });
 
@@ -178,6 +180,7 @@ app.post('/sse', (req, res) => {
 
   // 5) Forward each JSON-RPC request (raw) to MCP’s stdin:
   for (const rpcReq of requests) {
+    console.log('[SSE] forwarding to MCP.stdin →', JSON.stringify(rpcReq));
     mcp.stdin.write(JSON.stringify(rpcReq) + '\n');
   }
 });
