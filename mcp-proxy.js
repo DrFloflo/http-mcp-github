@@ -42,6 +42,7 @@ mcp.stderr.on('data', (d) => {
 // We’ll buffer incoming data from MCP stdout until we can parse a full JSON-RPC frame.
 let stdoutBuffer = '';
 mcp.stdout.on('data', (chunk) => {
+  console.log('[MCP stdout raw]', chunk.toString());
   stdoutBuffer += chunk.toString();
   // The MCP server writes exactly one JSON object per line, so we can split on "\n".
   // If you see multiple JSON objects, this will handle them in sequence.
