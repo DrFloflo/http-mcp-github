@@ -7,6 +7,8 @@
 //
 // Then point any HTTP client (VS Code, n8n, curl…) at http://localhost:6277/tools or /execute.
 
+require('dotenv').config();
+
 const express = require('express');
 const bodyParser = require('body-parser');
 const { spawn } = require('child_process');
