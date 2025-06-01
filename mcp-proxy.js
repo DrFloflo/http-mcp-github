@@ -42,7 +42,7 @@ mcp.stderr.on('data', (d) => {
 // We’ll buffer incoming data from MCP stdout until we can parse a full JSON-RPC frame.
 let stdoutBuffer = '';
 mcp.stdout.on('data', (chunk) => {
-  console.log('[MCP stdout raw]', chunk.toString());
+  //console.log('[MCP stdout raw]', chunk.toString());
   stdoutBuffer += chunk.toString();
   // The MCP server writes exactly one JSON object per line, so we can split on "\n".
   // If you see multiple JSON objects, this will handle them in sequence.
@@ -69,6 +69,7 @@ mcp.stdout.on('data', (chunk) => {
       }
     }
     // If this id was registered for an SSE stream, send it as an SSE event:
+    console.log('[SSE check] id=', id, 'pending keys=', [...ssePending.keys()]);
     if (ssePending.has(id)) {
       const { res: sseRes, remaining } = ssePending.get(id);
 
